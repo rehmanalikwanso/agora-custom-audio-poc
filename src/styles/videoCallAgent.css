@@ -1,0 +1,85 @@
+.video-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: calc(100vh - 100px);
+  background-color: #f4f4f4;
+  position: relative;
+}
+
+.customer-video,
+.client-agent-video {
+  width: 800px;
+  height: 600px;
+  background-color: #000;
+  position: relative;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.agent-video,
+.client-customer-video {
+  width: 150px;
+  height: 100px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #333;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+  overflow: hidden;
+  z-index: 999;
+}
+
+.agent-label {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  z-index: 9999;
+}
+
+.join-channel-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.join-channel-button,
+.leave-channel-button,
+.join-client-button {
+  display: block;
+  margin: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+}
+
+.join-channel-button:hover {
+  background-color: #0056b3;
+}
+
+.customer-label {
+  position: absolute;
+  bottom: 15px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  z-index: 9999;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

@@ -1,14 +1,14 @@
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
-import { Agent } from './Pages/Agent';
-import { Customer } from './Pages/Customer';
+import { VideoCallAgent } from './Pages/Agent';
+import { VideoCallClient } from './Pages/Customer';
 
 function App() {
   return (
     <Router >
        <Routes>
-        <Route path={'/'} element={<Agent/>} />
-        <Route path={'/customer'} element={<Customer/>} />
+        <Route path={'/'} element={<VideoCallAgent/>} />
+        <Route path={'/customer'} element={<VideoCallClient/>} />
       </Routes>
     </Router>
   );
