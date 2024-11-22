@@ -1,26 +1,35 @@
 // src/components/VideoCallClient.tsx
 import { IAgoraRTCClient, ILocalAudioTrack, ILocalVideoTrack } from 'agora-rtc-sdk-ng';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AGORA_APP_ID, AGORA_CHANNEL_KEY, UUID } from '../constant';
 import '../styles/videoCallClient.css';
 import { requestPermissions } from '../utils/permissions';
-import { createLocalTracks, initRTCClient, joinChannel } from '../utils/rtcClient';
+import { createCustomerLocalTracks, initRTCClient, joinChannel } from '../utils/rtcClient';
+import { webSocketEventResolver } from '../utils/websocketCunsumer';
 
 export const VideoCallClient: React.FC = () => {
   const [rtcClient, setRtcClient] = useState<IAgoraRTCClient | null>(null);
   const [localVideoTrack, setLocalVideoTrack] = useState<ILocalVideoTrack | null>(null);
   const [localAudioTrack, setLocalAudioTrack] = useState<ILocalAudioTrack | null>(null);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
 
-
+  useEffect(() => {
+    console.log("localAudioTrack>>>>>>.")
+    const socket = webSocketEventResolver({ serverUrl: "https://126a-182-176-115-44.ngrok-free.app" });
+    setSocket(socket)
+  }, [])
+  
   const handleJoinClientChannel = async () => {
     try {
-      if (!rtcClient) {
+      console.log(">>>>>>>>>>>>>", socket)
+      if (!rtcClient && socket) {
 
         await requestPermissions();
 
         const client = initRTCClient();
         setRtcClient(client);
-        const { videoTrack, audioTrack } = await createLocalTracks();
+          const { videoTrack, audioTrack } = await createCustomerLocalTracks(socket);
+        
         setLocalVideoTrack(videoTrack);
         setLocalAudioTrack(audioTrack);
 

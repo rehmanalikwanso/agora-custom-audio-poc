@@ -34,6 +34,7 @@ export const VideoCallAgent = () => {
             user.videoTrack?.play(remoteContainer.id);
           }
 
+          console.log("mediaType>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", mediaType)
           if (mediaType === 'audio') {
             user.audioTrack?.play();
           }
