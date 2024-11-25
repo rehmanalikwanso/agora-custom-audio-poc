@@ -15,7 +15,7 @@ export const VideoCallClient: React.FC = () => {
 
   useEffect(() => {
     console.log("localAudioTrack>>>>>>.")
-    const socket = webSocketEventResolver({ serverUrl: "https://126a-182-176-115-44.ngrok-free.app" });
+    const socket = webSocketEventResolver({ serverUrl: "https://29b7-182-176-115-44.ngrok-free.app" });
     setSocket(socket)
   }, [])
   

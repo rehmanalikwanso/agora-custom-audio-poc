@@ -30,7 +30,7 @@ class SocketAudioProcessor extends AudioWorkletProcessor {
 
     this.port.onmessage = (event) => {
 
-      console.log("event.data>>>>>>>>>>", event);
+      // console.log("event.data>>>>>>>>>>", event);
       if (event.data && event.data.audioBuffer) {
         this.audioBufferQueue.push(event.data.audioBuffer);
       }
@@ -39,13 +39,13 @@ class SocketAudioProcessor extends AudioWorkletProcessor {
 
   process(inputs, outputs) {
     const output = outputs[0];
-    console.log("this.audioBufferQueue.length", this.audioBufferQueue.length)
+    // console.log("this.audioBufferQueue.length",  this.audioBufferQueue)
     if (this.audioBufferQueue.length > 0) {
-      console.log("event.data>>>>>>>>>>", this.audioBufferQueue.shift());
+      // console.log("event.data>>>>>>>>>> final", this.audioBufferQueue.shift());
       const audioBuffer = this.audioBufferQueue.shift();
       const outputChannel = output[0];
-
-      for (let i = 0; i < audioBuffer.length; i++) {
+      console.log("audioBuffer>>>>>>>>>", audioBuffer)
+      for (let i = 0; i < audioBuffer?.length; i++) {
         outputChannel[i] = audioBuffer[i];
       }
     } else {

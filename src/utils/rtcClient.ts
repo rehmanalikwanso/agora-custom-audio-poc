@@ -65,11 +65,12 @@ export const createCustomerLocalTracks = async (socket: WebSocket): Promise<{
     console.log("\n\n\n\n\n\n\nAudio????????await audioContext.audioWorklet.addModule('???")
     await audioContext.audioWorklet.addModule('http://localhost:3000/AudioProcessor.js');
     // const localAudioTrack = await createAudioTrackFromAudioWorkletWithoutSocket(audioContext);
-    const localAudioTrack = await createAudioTrackFromAudioWorkletWithoutSocket(audioContext);
-    // const localAudioTrack = await createAudioTrackFromAudioWorkletWithSocket(audioContext, socket);
+    // const localAudioTrack = await createAudioTrackFromAudioWorkletWithoutSocket(audioContext);
+    const localAudioTrack = await createAudioTrackFromAudioWorkletWithSocket(audioContext, socket);
 
     // Create a custom audio track for Agora
     console.log("Creating>>>>>>")
+
     const audioTrack: ILocalAudioTrack = AgoraRTC.createCustomAudioTrack({
       mediaStreamTrack: localAudioTrack
     });
@@ -81,40 +82,51 @@ export const createCustomerLocalTracks = async (socket: WebSocket): Promise<{
   }
 };
 
-
-const createAudioTrackFromAudioWorkletWithSocket = async (audioContext: AudioContext, socket:WebSocket): Promise<MediaStreamTrack> => {
+const createAudioTrackFromAudioWorkletWithSocket = async (audioContext: AudioContext, socket: WebSocket): Promise<MediaStreamTrack> => {
 
   const workletNode = new AudioWorkletNode(audioContext, "socket-audio-processor");
   const mediaStreamDestination = audioContext.createMediaStreamDestination();
   workletNode.connect(mediaStreamDestination);
+  let chunks: ArrayBuffer[] = [];
 
-  socket.onmessage = (event: MessageEvent) => {
-
+  socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
+    if (data.type === "media") {
+      const payload = data.payload; // This is the binary data array
 
-    console.log("Message received", data.payload);
+      // Ensure payload is an instance of Uint8Array
+      if (Array.isArray(payload.data)) {
+        const uint8Array = new Uint8Array(payload.data); // Convert to Uint8Array
+        chunks.push(uint8Array.buffer); // Store as ArrayBuffer
 
-    if (data.type === "media" && data.payload) {
-      const uint8Array = new Uint8Array(data.payload);
-      const float32Array = new Float32Array(uint8Array.length);
+        if (chunks.length > 5) {
+          const totalLength = chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
+          const combinedArray = new Uint8Array(totalLength);
 
-      for (let i = 0; i < uint8Array.length; i++) {
-        float32Array[i] = (uint8Array[i] - 128) / 128; // Normalize to [-1, 1]
+          let offset = 0;
+          for (const chunk of chunks) {
+            combinedArray.set(new Uint8Array(chunk), offset);
+            offset += chunk.byteLength;
+          }
+
+          const float32Array = new Float32Array(combinedArray.length);
+
+          for (let i = 0; i < combinedArray.length; i++) {
+            float32Array[i] = (combinedArray[i] - 128) / 128;  // Normalize to [-1, 1]
+          }
+          console.log("float32Array", float32Array)
+          workletNode.port.postMessage({ audioBuffer: float32Array });
+
+          chunks = [] // Clear chunks after sending
+        }
       }
-
-      console.log("Float32 audio buffer", float32Array);
-
-      // Send data to the AudioWorkletProcessor
-      workletNode.port.postMessage({ audioBuffer: float32Array });
-
     }
+  };
 
-  }
+  return mediaStreamDestination.stream.getAudioTracks()[0];
+};
 
-  return mediaStreamDestination.stream.getAudioTracks()[0]
-}
-
-const createAudioTrackFromAudioWorkletWithoutSocket = async (audioContext: AudioContext): Promise<MediaStreamTrack> => {
+export const createAudioTrackFromAudioWorkletWithoutSocket = async (audioContext: AudioContext): Promise<MediaStreamTrack> => {
 
   const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   const mediaStreamSource = audioContext.createMediaStreamSource(mediaStream);
@@ -128,7 +140,7 @@ const createAudioTrackFromAudioWorkletWithoutSocket = async (audioContext: Audio
   return mediaStreamDestination.stream.getAudioTracks()[0]
 }
 
-const createAudioTrackFromLocalStreamWithProcessor = async (
+export const createAudioTrackFromLocalStreamWithProcessor = async (
   audioContext: AudioContext
 ): Promise<MediaStreamTrack> => {
   try {
@@ -169,7 +181,7 @@ const createAudioTrackFromLocalStreamWithProcessor = async (
   }
 };
 
-const createAudioTrackFromLocalStreamWithProcessorSocket = async (
+export const createAudioTrackFromLocalStreamWithProcessorSocket = async (
   audioContext: AudioContext,
   socket: WebSocket
 ): Promise<MediaStreamTrack> => {
@@ -249,9 +261,6 @@ const createAudioTrackFromLocalStreamWithProcessorSocket = async (
 //   })
 //   return audioSource.mediaStream.getAudioTracks()[0];
 // }
-
-
-
 
 // const base64ToArrayBuffer = (base64: string) => {
 //   const binaryString = atob(base64);
