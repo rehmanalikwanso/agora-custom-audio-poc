@@ -1,37 +1,84 @@
 // src/components/VideoCallClient.tsx
+import { Call, Device } from '@twilio/voice-sdk';
 import { IAgoraRTCClient, ILocalAudioTrack, ILocalVideoTrack } from 'agora-rtc-sdk-ng';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AGORA_APP_ID, AGORA_CHANNEL_KEY, UUID } from '../constant';
 import '../styles/videoCallClient.css';
 import { requestPermissions } from '../utils/permissions';
 import { createCustomerLocalTracks, initRTCClient, joinChannel } from '../utils/rtcClient';
-import { webSocketEventResolver } from '../utils/websocketCunsumer';
+import { getTwilioToken } from '../utils/twilio';
 
 export const VideoCallClient: React.FC = () => {
   const [rtcClient, setRtcClient] = useState<IAgoraRTCClient | null>(null);
   const [localVideoTrack, setLocalVideoTrack] = useState<ILocalVideoTrack | null>(null);
   const [localAudioTrack, setLocalAudioTrack] = useState<ILocalAudioTrack | null>(null);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
+
+  const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [device, setDevice] = useState<Device | null>(null);
+  const [isCallInProgress, setIsCallInProgress] = useState<boolean>(false);
+  const [currentCall, setCall] = useState<Call | null>(null);
+
+  const phoneNumberInputRef = useRef<HTMLInputElement | null>(null);
+
 
   useEffect(() => {
     console.log("localAudioTrack>>>>>>.")
-    const socket = webSocketEventResolver({ serverUrl: "https://29b7-182-176-115-44.ngrok-free.app" });
-    setSocket(socket)
+    const init = async () => {
+      if (phoneNumberInputRef.current) {
+        phoneNumberInputRef.current.value = '+923160485008'; // Set the default value
+      }
+      const token = await getTwilioToken();
+      console.log("data", token);
+      // setToken(token);
+      initializeDevice(token);
+    }
+
+    init();
   }, [])
-  
+
+
+  useEffect(() => {
+    !isCallInProgress && handleLeaveCall()
+  }, [isCallInProgress]);
+
+
+  const initializeDevice = (token: string) => {
+    log("Initializing device");
+
+    const newDevice = new Device(token, {
+      logLevel: 1,
+      codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
+    });
+
+    addDeviceListeners(newDevice);
+    newDevice.register();
+    setDevice(newDevice);
+  };
+
+
+  const addDeviceListeners = (device: Device) => {
+    device.on("registered", () => {
+      log("Twilio.Device Ready to make and receive calls!");
+    });
+
+    device.on("error", (error: Error) => {
+      log("Twilio.Device Error: " + error.message);
+    });
+
+  };
+
   const handleJoinClientChannel = async () => {
     try {
-      console.log(">>>>>>>>>>>>>", socket)
-      if (!rtcClient && socket) {
+      console.log(">>>>>>>>>>>>>")
+      if (!rtcClient) {
 
         await requestPermissions();
 
         const client = initRTCClient();
         setRtcClient(client);
-          const { videoTrack, audioTrack } = await createCustomerLocalTracks(socket);
-        
+        const { videoTrack } = await createCustomerLocalTracks();
+
         setLocalVideoTrack(videoTrack);
-        setLocalAudioTrack(audioTrack);
 
         await joinChannel(client, AGORA_APP_ID, AGORA_CHANNEL_KEY, null, UUID);
 
@@ -47,10 +94,6 @@ export const VideoCallClient: React.FC = () => {
             document.getElementById('client-agent-video')?.appendChild(remoteContainer);
             user.videoTrack?.play(remoteContainer.id);
           }
-
-          if (mediaType === 'audio') {
-            user.audioTrack?.play();
-          }
         });
 
         client.on('user-unpublished', (user) => {
@@ -58,7 +101,7 @@ export const VideoCallClient: React.FC = () => {
         });
 
         videoTrack.play('client-customer-video');
-        client.publish([videoTrack, audioTrack]);
+        client.publish([videoTrack]);
 
       }
     } catch (error) {
@@ -66,9 +109,11 @@ export const VideoCallClient: React.FC = () => {
     }
   };
 
+
   const handleLeaveCall = async () => {
     if (rtcClient) {
       try {
+        currentCall?.disconnect();
         // Stop and close local tracks
         if (localVideoTrack) {
           localVideoTrack.stop();
@@ -92,12 +137,59 @@ export const VideoCallClient: React.FC = () => {
     }
   };
 
+  const log = (message: string) => {
+    setLogMessages((prevLogs) => [...prevLogs, message]);
+  };
+
+  const makeOutgoingCall = async () => {
+    if (device && phoneNumberInputRef.current) {
+      const params = {
+        To: phoneNumberInputRef.current.value,
+      };
+      log(`Attempting to call ${params.To} ...`);
+      console.log("device>>>>>>", device)
+      try {
+
+        const call = await device.connect({ params });
+        setCall(call)
+        call.on("accept", () => {
+          log("Call accepted.");
+          setIsCallInProgress(true);
+          handleJoinClientChannel()
+        });
+        call.on("disconnect", () => {
+          log("Call disconnected.");
+          setIsCallInProgress(false);
+        });
+        call.on("cancel", () => {
+          console.log("Incoming call canceled by the caller.");
+        });
+
+        call.on("ringing", () => {
+          console.log("Outgoing call is ringing.");
+        });
+
+
+        call.on("error", (error) => {
+          console.error("Call error: ", error.message);
+        });
+      } catch (error) {
+        console.log("device>>>>>> error", error)
+      }
+    } else {
+      log("Unable to make call.");
+    }
+  };
+
   return (
     <>
       <div className='button-container'>
-        <button onClick={handleJoinClientChannel} className="join-client-button">
+        <button onClick={makeOutgoingCall} className="join-client-button">
           Join Channel
         </button>
+        <div>
+          <input ref={phoneNumberInputRef} type="text" placeholder="Phone Number" />
+        </div>
         <button onClick={handleLeaveCall} className="leave-channel-button">
           Leave Channel
         </button>
@@ -108,6 +200,19 @@ export const VideoCallClient: React.FC = () => {
           <div id="client-customer-video" className="client-customer-video"></div>
           <span className="client-customer-label">Your Video</span>
         </div>
+      </div>
+      <div>
+
+
+        <div>
+          <h3>Logs</h3>
+          <div id="log">
+            {logMessages.map((message, index) => (
+              <p key={index}>{message}</p>
+            ))}
+          </div>
+        </div>
+
       </div>
     </>
   );

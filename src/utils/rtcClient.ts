@@ -47,9 +47,8 @@ export const createLocalTracks = async (): Promise<{
     throw error;
   }
 };
-export const createCustomerLocalTracks = async (socket: WebSocket): Promise<{
+export const createCustomerLocalTracks = async (): Promise<{
   videoTrack: ICameraVideoTrack;
-  audioTrack: ILocalAudioTrack;
 }> => {
   try {
     const cameraDevices = await AgoraRTC.getCameras(false);
@@ -61,70 +60,66 @@ export const createCustomerLocalTracks = async (socket: WebSocket): Promise<{
       optimizationMode: 'motion',
     });
 
-    const audioContext = new AudioContext();
-    console.log("\n\n\n\n\n\n\nAudio????????await audioContext.audioWorklet.addModule('???")
-    await audioContext.audioWorklet.addModule('http://localhost:3000/AudioProcessor.js');
-    // const localAudioTrack = await createAudioTrackFromAudioWorkletWithoutSocket(audioContext);
-    // const localAudioTrack = await createAudioTrackFromAudioWorkletWithoutSocket(audioContext);
-    const localAudioTrack = await createAudioTrackFromAudioWorkletWithSocket(audioContext, socket);
-
-    // Create a custom audio track for Agora
-    console.log("Creating>>>>>>")
-
-    const audioTrack: ILocalAudioTrack = AgoraRTC.createCustomAudioTrack({
-      mediaStreamTrack: localAudioTrack
-    });
-
-    return { videoTrack, audioTrack };
+    return { videoTrack };
   } catch (error) {
     console.error('Error creating local tracks:', error);
     throw error;
   }
 };
 
-const createAudioTrackFromAudioWorkletWithSocket = async (audioContext: AudioContext, socket: WebSocket): Promise<MediaStreamTrack> => {
+function int16ToFloat32(inputArray: Int16Array): Float32Array {
+  var output = new Float32Array(inputArray.length);
+  for (var i = 0; i < inputArray.length; i++) {
+    var int = inputArray[i];
+    // If the high bit is on, then it is a negative number, and actually counts backwards.
+    var float = (int >= 0x8000) ? -(0x10000 - int) / 0x8000 : int / 0x7FFF;
+    output[i] = float;
+  }
+  return output;
+}
 
+export const createAudioTrackFromAudioWorkletWithSocket = async (
+  audioContext: AudioContext,
+  socket: WebSocket
+): Promise<MediaStreamTrack> => {
   const workletNode = new AudioWorkletNode(audioContext, "socket-audio-processor");
   const mediaStreamDestination = audioContext.createMediaStreamDestination();
   workletNode.connect(mediaStreamDestination);
-  let chunks: ArrayBuffer[] = [];
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
     if (data.type === "media") {
-      const payload = data.payload; // This is the binary data array
+      const payload = data.payload;
 
-      // Ensure payload is an instance of Uint8Array
       if (Array.isArray(payload.data)) {
-        const uint8Array = new Uint8Array(payload.data); // Convert to Uint8Array
-        chunks.push(uint8Array.buffer); // Store as ArrayBuffer
+        const byteArray = new Uint8Array(payload.data);
+        const int16Array = new Int16Array(byteArray.buffer);
+        const float32Array = int16ToFloat32(int16Array);
 
-        if (chunks.length > 5) {
-          const totalLength = chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
-          const combinedArray = new Uint8Array(totalLength);
+        // Ensure chunks of size 128
+        const chunkSize = 128;
+        const totalChunks = Math.ceil(float32Array.length / chunkSize);
+        let chunks: Float32Array[] = [];
 
-          let offset = 0;
-          for (const chunk of chunks) {
-            combinedArray.set(new Uint8Array(chunk), offset);
-            offset += chunk.byteLength;
-          }
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * chunkSize;
+          const end = Math.min(start + chunkSize, float32Array.length);
 
-          const float32Array = new Float32Array(combinedArray.length);
-
-          for (let i = 0; i < combinedArray.length; i++) {
-            float32Array[i] = (combinedArray[i] - 128) / 128;  // Normalize to [-1, 1]
-          }
-          console.log("float32Array", float32Array)
-          workletNode.port.postMessage({ audioBuffer: float32Array });
-
-          chunks = [] // Clear chunks after sending
+          // Fill a Float32Array with the required chunk size
+          const chunk = new Float32Array(chunkSize);
+          chunk.set(float32Array.slice(start, end), 0); // Fill with available data
+          chunks.push(chunk);
         }
+
+        // Send each chunk to the audio worklet
+        chunks.forEach((chunk) => workletNode.port.postMessage({ audioBuffer: chunk }));
       }
     }
   };
 
   return mediaStreamDestination.stream.getAudioTracks()[0];
 };
+
 
 export const createAudioTrackFromAudioWorkletWithoutSocket = async (audioContext: AudioContext): Promise<MediaStreamTrack> => {
 
