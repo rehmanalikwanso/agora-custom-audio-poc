@@ -166,7 +166,7 @@ export const VideoCallClient: React.FC = () => {
         });
 
         call.on("ringing", () => {
-          console.log("Outgoing call is ringing.");
+          log("Outgoing call is ringing.");
         });
 
 

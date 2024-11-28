@@ -1,5 +1,5 @@
 export const getTwilioToken = async () => {
-  const response = await fetch('https://29e3-182-176-115-44.ngrok-free.app/token', {
+  const response = await fetch('https://natgen-backend.vercel.app/token', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
