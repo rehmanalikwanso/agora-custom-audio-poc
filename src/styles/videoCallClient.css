@@ -30,3 +30,31 @@
   border-radius: 3px;
   z-index: 9999;
 }
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Input field styling */
+input[type='text'] {
+  padding: 10px;
+  width: 250px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+input[type='text']:focus {
+  border-color: #28a745;
+  outline: none;
+  box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+}
+
+/* Error message styling */
+.error-message {
+  color: #dc3545;
+  font-size: 14px;
+  margin-top: 5px;
+}

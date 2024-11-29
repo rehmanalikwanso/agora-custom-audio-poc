@@ -12,6 +12,7 @@ export const VideoCallClient: React.FC = () => {
   const [rtcClient, setRtcClient] = useState<IAgoraRTCClient | null>(null);
   const [localVideoTrack, setLocalVideoTrack] = useState<ILocalVideoTrack | null>(null);
   const [localAudioTrack, setLocalAudioTrack] = useState<ILocalAudioTrack | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [device, setDevice] = useState<Device | null>(null);
@@ -24,9 +25,9 @@ export const VideoCallClient: React.FC = () => {
   useEffect(() => {
     console.log("localAudioTrack>>>>>>.")
     const init = async () => {
-      if (phoneNumberInputRef.current) {
-        phoneNumberInputRef.current.value = '+923160485008'; // Set the default value
-      }
+      // if (phoneNumberInputRef.current) {
+      //   phoneNumberInputRef.current.value = '+923160485008'; // Set the default value
+      // }
       const token = await getTwilioToken();
       console.log("data", token);
       // setToken(token);
@@ -142,6 +143,13 @@ export const VideoCallClient: React.FC = () => {
   };
 
   const makeOutgoingCall = async () => {
+    const phoneNumber = phoneNumberInputRef.current?.value;
+    if (!phoneNumber || phoneNumber.trim() === '') {
+      setErrorMessage('Phone number is required.');
+      return;
+    }
+
+    setErrorMessage('');
     if (device && phoneNumberInputRef.current) {
       const params = {
         To: phoneNumberInputRef.current.value,
@@ -183,17 +191,19 @@ export const VideoCallClient: React.FC = () => {
 
   return (
     <>
-      <div className='button-container'>
+      <div className="button-container">
+        <div className="input-container">
+          <input ref={phoneNumberInputRef} type="text" placeholder="Phone Number" />
+          {errorMessage && <span className="error-message">{errorMessage}</span>}
+        </div>
         <button onClick={makeOutgoingCall} className="join-client-button">
           Join Channel
         </button>
-        <div>
-          <input ref={phoneNumberInputRef} type="text" placeholder="Phone Number" />
-        </div>
         <button onClick={handleLeaveCall} className="leave-channel-button">
           Leave Channel
         </button>
       </div>
+
       <div className="video-container">
         <div id="client-agent-video" className="client-agent-video">
           <span className="client-agent-label">Agent Video</span>
