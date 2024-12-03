@@ -4,9 +4,11 @@ import { IAgoraRTCClient, ILocalAudioTrack, ILocalVideoTrack } from 'agora-rtc-s
 import React, { useEffect, useRef, useState } from 'react';
 import { AGORA_APP_ID, AGORA_CHANNEL_KEY, UUID } from '../constant';
 import '../styles/videoCallClient.css';
+import UPTOK_LOGO from "../svgs/logo.svg";
 import { requestPermissions } from '../utils/permissions';
 import { createCustomerLocalTracks, initRTCClient, joinChannel } from '../utils/rtcClient';
 import { getTwilioToken } from '../utils/twilio';
+
 
 export const VideoCallClient: React.FC = () => {
   const [rtcClient, setRtcClient] = useState<IAgoraRTCClient | null>(null);
@@ -15,9 +17,11 @@ export const VideoCallClient: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [currenLogMessages, setCurrentLogMessages] = useState<string>("");
   const [device, setDevice] = useState<Device | null>(null);
   const [isCallInProgress, setIsCallInProgress] = useState<boolean>(false);
   const [currentCall, setCall] = useState<Call | null>(null);
+  const [callStatus, setCallStatus] = useState<'NotInCall' | 'Connecting' | 'InCall'>('NotInCall');
 
   const phoneNumberInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -148,9 +152,10 @@ export const VideoCallClient: React.FC = () => {
       setErrorMessage('Phone number is required.');
       return;
     }
-
+    setCurrentLogMessages("")
     setErrorMessage('');
     if (device && phoneNumberInputRef.current) {
+      setCallStatus("Connecting")
       const params = {
         To: phoneNumberInputRef.current.value,
       };
@@ -162,14 +167,19 @@ export const VideoCallClient: React.FC = () => {
         setCall(call)
         call.on("accept", () => {
           log("Call accepted.");
+          setCallStatus("InCall")
           setIsCallInProgress(true);
           handleJoinClientChannel()
         });
         call.on("disconnect", () => {
+          setCallStatus("NotInCall");
+          setCurrentLogMessages("Call disconnected pleas try again.")
           log("Call disconnected.");
           setIsCallInProgress(false);
         });
         call.on("cancel", () => {
+          setCallStatus("NotInCall")
+          setCurrentLogMessages("Call canceled by the caller.")
           console.log("Incoming call canceled by the caller.");
         });
 
@@ -179,36 +189,57 @@ export const VideoCallClient: React.FC = () => {
 
 
         call.on("error", (error) => {
+          setCallStatus("NotInCall")
           console.error("Call error: ", error.message);
         });
       } catch (error) {
+        setCallStatus("NotInCall")
         console.log("device>>>>>> error", error)
       }
     } else {
+      setCallStatus("NotInCall")
       log("Unable to make call.");
     }
   };
 
   return (
     <>
-      <div className="button-container">
-        <div className="input-container">
-          <input ref={phoneNumberInputRef} type="text" placeholder="Phone Number" />
-          {errorMessage && <span className="error-message">{errorMessage}</span>}
-        </div>
-        <button onClick={makeOutgoingCall} className="join-client-button">
-          Join Channel
-        </button>
-        <button onClick={handleLeaveCall} className="leave-channel-button">
-          Leave Channel
-        </button>
+      <div className='uptok-logo'>
+        <img src={UPTOK_LOGO} alt="uptok-logo" width={174} />
       </div>
 
       <div className="video-container">
-        <div id="client-agent-video" className="client-agent-video">
-          <span className="client-agent-label">Agent Video</span>
-          <div id="client-customer-video" className="client-customer-video"></div>
-          <span className="client-customer-label">Your Video</span>
+        <div className="status-container">
+          {
+            callStatus === 'NotInCall' ?
+              <p className="status-message">Not in a Call</p>
+              :
+              <div id="client-agent-video" className="client-agent-video">
+                {callStatus === "Connecting" && (
+                  <div className="connecting-spinner-container">
+                    <div className="spinner"></div>
+                    <p className="connecting-text">Connecting...</p>
+                  </div>
+                )}
+                <span className="client-agent-label">Agent Video</span>
+                <div id="client-customer-video" className="client-customer-video"></div>
+                <span className="client-customer-label">Your Video</span>
+              </div>
+          }
+          <div className='button-bottom button-bottom-client'>
+            <div className="input-container">
+              <input ref={phoneNumberInputRef} type="text" placeholder="Enter phone number" />
+              {errorMessage && <span className="error-message">{errorMessage}</span>}
+            </div>
+            {callStatus === 'NotInCall' ?
+              <button onClick={makeOutgoingCall} className="join-channel-button">
+                Join Call
+              </button> :
+              <button onClick={handleLeaveCall} className="leave-channel-button" disabled={!rtcClient}>
+                Hang Up
+              </button>
+            }
+          </div>
         </div>
       </div>
       <div>

@@ -3,16 +3,19 @@ import { IAgoraRTCClient, ILocalAudioTrack, ILocalVideoTrack } from 'agora-rtc-s
 import { useState } from 'react';
 import { AGORA_APP_ID, AGORA_CHANNEL_KEY } from '../constant';
 import '../styles/videoCallAgent.css';
+import UPTOK_LOGO from "../svgs/logo.svg";
 import { createLocalTracks, initRTCClient, joinChannel } from '../utils/rtcClient';
 
 export const VideoCallAgent = () => {
   const [rtcClient, setRtcClient] = useState<IAgoraRTCClient | null>(null);
   const [localVideoTrack, setLocalVideoTrack] = useState<ILocalVideoTrack | null>(null);
   const [localAudioTrack, setLocalAudioTrack] = useState<ILocalAudioTrack | null>(null);
+  const [callStatus, setCallStatus] = useState<'NotInCall' | 'Connecting' | 'InCall'>('NotInCall');
 
-  const HandleJoinCall = async () => {
+  const handleJoinCall = async () => {
     try {
       if (!rtcClient) {
+        setCallStatus('Connecting');
         const client = initRTCClient();
         setRtcClient(client);
 
@@ -48,9 +51,11 @@ export const VideoCallAgent = () => {
           videoTrack.play('agent-video');
         }
         client.publish([videoTrack]);
+        setCallStatus('InCall');
       }
     } catch (error) {
       console.error('Error during joining call:', error);
+      setCallStatus('NotInCall');
     }
   };
 
@@ -73,7 +78,7 @@ export const VideoCallAgent = () => {
         setRtcClient(null);
         setLocalAudioTrack(null);
         setLocalAudioTrack(null)
-
+        setCallStatus('NotInCall');
       } catch (error) {
         console.error('Error during leaving call:', error);
       }
@@ -82,19 +87,37 @@ export const VideoCallAgent = () => {
 
   return (
     <>
-      <div className='button-container'>
-        <button onClick={HandleJoinCall} className="join-channel-button">
-          Join Channel
-        </button>
-        <button onClick={handleLeaveCall} className="leave-channel-button">
-          Leave Channel
-        </button>
+      <div className='uptok-logo'>
+        <img src={UPTOK_LOGO} alt="uptok-logo" width={174} />
       </div>
       <div className="video-container">
-        <div id="customer-video" className="customer-video">
-          <span className="customer-label">Customer Video</span>
-          <div id="agent-video" className="agent-video"></div>
-          <span className="agent-label">Your Video</span>
+        <div className="status-container">
+          {
+            callStatus === 'NotInCall' ?
+              <p className="status-message">Not in a Call</p> :
+
+              <div id="customer-video" className="customer-video">
+                {callStatus === "Connecting" && (
+                  <div className="connecting-spinner-container">
+                    <div className="spinner"></div>
+                    <p className="connecting-text">Connecting...</p>
+                  </div>
+                )}
+                <span className="customer-label">Customer Video</span>
+                <div id="agent-video" className="agent-video"></div>
+                <span className="agent-label">Your Video</span>
+              </div>
+          }
+          <div className='button-bottom'>
+            {callStatus === 'NotInCall' ?
+              <button onClick={handleJoinCall} className="join-channel-button">
+                Accept Call
+              </button> :
+              <button onClick={handleLeaveCall} className="leave-channel-button" disabled={!rtcClient}>
+                Hang Up
+              </button>
+            }
+          </div>
         </div>
       </div>
     </>

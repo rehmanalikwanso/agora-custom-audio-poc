@@ -1,3 +1,6 @@
+body{
+  background-color: rgb(55, 71, 79);
+}
 .App {
   text-align: center;
 }
@@ -35,4 +38,42 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.connecting-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 1000; /* Ensure it appears above other content */
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(0, 0, 0, 0.1); /* Light grey border */
+  border-top: 5px solid #007bff; /* Blue border for animation */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.connecting-text {
+  margin-top: 15px;
+  font-size: 16px;
+  color: #333; /* Dark grey */
+  font-weight: bold;
 }

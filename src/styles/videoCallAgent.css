@@ -2,23 +2,37 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
   width: 100%;
   height: calc(100vh - 100px);
-  background-color: #f4f4f4;
   position: relative;
 }
 
 .customer-video,
-.client-agent-video {
+.client-agent-video,
+.status-container {
   width: 800px;
   height: 600px;
-  background-color: #000;
   position: relative;
-  border: 2px solid #ccc;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #fff;
+}
+
+.status-container{
+  background-color: #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
   border-radius: 10px;
   overflow: hidden;
 }
+.customer-video,
+.client-agent-video{
+  background-color: #000;
 
+}
 .agent-video,
 .client-customer-video {
   width: 150px;
@@ -46,8 +60,22 @@
 }
 
 .join-channel-button {
-  background-color: #007bff;
+  background-color: #000;
   color: white;
+}
+
+.button-bottom {
+  position: absolute; /* Allow positioning relative to the container */
+  bottom: 0px; /* Distance from the bottom */
+  display: flex; 
+  justify-content: flex-end;
+  background-color: #f2f2f2;
+  width: 100%;
+}
+.button-bottom-client {
+  justify-content: space-between !important;
+  padding: 10px;
+
 }
 
 .join-channel-button,
@@ -62,14 +90,20 @@
   border-radius: 5px;
 }
 
+.leave-channel-button ,
+.leave-channel-button:hover {
+  background-color: #c41d4c;
+  color: white;
+}
+
 .join-channel-button:hover {
-  background-color: #0056b3;
+  background-color: #000;
 }
 
 .customer-label {
   position: absolute;
-  bottom: 15px;
-  right: 20px;
+  top: 15px;
+  left: 15px;
   background-color: rgba(0, 0, 0, 0.6);
   color: #fff;
   font-size: 12px;
@@ -82,4 +116,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+button:disabled {
+  color: wheat;
+  cursor: default;
+} 
+.uptok-logo {
+  margin: 10px;
+}
+
+.status-message{
+  color: #333;
+  font-size: 18px;
 }
