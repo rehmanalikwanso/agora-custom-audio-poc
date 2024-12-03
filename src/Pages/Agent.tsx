@@ -1,6 +1,6 @@
 // src/components/VideoCallAgent.tsx
 import { IAgoraRTCClient, ILocalAudioTrack, ILocalVideoTrack } from 'agora-rtc-sdk-ng';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AGORA_APP_ID, AGORA_CHANNEL_KEY } from '../constant';
 import '../styles/videoCallAgent.css';
 import UPTOK_LOGO from "../svgs/logo.svg";
@@ -12,7 +12,7 @@ export const VideoCallAgent = () => {
   const [localAudioTrack, setLocalAudioTrack] = useState<ILocalAudioTrack | null>(null);
   const [callStatus, setCallStatus] = useState<'NotInCall' | 'Connecting' | 'InCall'>('NotInCall');
 
-  const handleJoinCall = async () => {
+  const handleJoinCall = useCallback(async () => {
     try {
       if (!rtcClient) {
         setCallStatus('Connecting');
@@ -57,7 +57,7 @@ export const VideoCallAgent = () => {
       console.error('Error during joining call:', error);
       setCallStatus('NotInCall');
     }
-  };
+  },[rtcClient]);
 
 
   const handleLeaveCall = async () => {
@@ -84,6 +84,11 @@ export const VideoCallAgent = () => {
       }
     }
   };
+
+  useEffect(() => {
+    (async () => await handleJoinCall())();
+    
+  }, [handleJoinCall]);
 
   return (
     <>
