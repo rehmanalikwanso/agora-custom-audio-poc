@@ -1,8 +1,7 @@
 // src/services/agora/rtcClient.ts
 import AgoraRTC, {
   IAgoraRTCClient,
-  ICameraVideoTrack,
-  ILocalAudioTrack
+  ICameraVideoTrack
 } from 'agora-rtc-sdk-ng';
 let rtcClient: IAgoraRTCClient | null = null;
 
@@ -13,10 +12,7 @@ export const initRTCClient = (): IAgoraRTCClient => {
   return rtcClient;
 };
 
-export const createLocalTracks = async (): Promise<{
-  videoTrack: ICameraVideoTrack;
-  audioTrack: ILocalAudioTrack;
-}> => {
+export const createLocalTracks = async (): Promise<{videoTrack: ICameraVideoTrack;}> => {
   try {
     const cameraDevices = await AgoraRTC.getCameras(false);
     const deviceId = cameraDevices.length > 1 && cameraDevices[0]['label'] === 'FaceTime HD Camera'
@@ -29,19 +25,7 @@ export const createLocalTracks = async (): Promise<{
       optimizationMode: 'motion',
     });
 
-    const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    // Extract the audio track from the media stream
-    const mediaStreamTrack = mediaStream.getAudioTracks()[0];
-
-    console.log("Audio stream track", mediaStreamTrack)
-
-    // Create a custom audio track for Agora
-    const audioTrack: ILocalAudioTrack = AgoraRTC.createCustomAudioTrack({
-      mediaStreamTrack,
-    });
-
-    return { videoTrack, audioTrack };
+    return { videoTrack };
   } catch (error) {
     console.error('Error creating local tracks:', error);
     throw error;
